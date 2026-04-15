@@ -77,17 +77,37 @@ document.addEventListener("DOMContentLoaded", () => {
         if (showDot) firstRenderUnreadIds.add(msg.id);
 
         div.innerHTML = `
-          <div class="flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-              ${showDot ? '<span class="w-3 h-3 rounded-full bg-green-500 inline-block unread-dot"></span>' : ''}
-              <strong>${msg.first_name} ${msg.last_name}</strong>
+          <div class="flex justify-between items-start">
+
+            <!-- LEFT SIDE: message content -->
+            <div class="flex-1 pr-4">
+
+              <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                  ${showDot ? '<span class="w-3 h-3 rounded-full bg-green-500 inline-block unread-dot"></span>' : ''}
+                  <strong>${msg.first_name} ${msg.last_name}</strong>
+                </div>
+                <span class="text-sm text-gray-500">${msg.service || ""}</span>
+              </div>
+
+              <p class="text-sm text-gray-600 mt-1">${msg.email} • ${msg.phone}</p>
+
+              <p class="mt-3 text-gray-800 whitespace-pre-wrap">${msg.message}</p>
+
             </div>
-            <span class="text-sm text-gray-500">${msg.service || ""}</span>
+
+            <!-- RIGHT SIDE: actions -->
+            <div class="flex flex-col gap-2 items-end">
+
+              <button
+                class="delete-btn text-red-500 text-sm border border-red-900 px-2 py-1 rounded hover:bg-red-50"
+                data-id="${msg.id}">
+                Delete
+              </button>
+
+            </div>
+
           </div>
-
-          <p class="text-sm text-gray-600 mt-1">${msg.email} • ${msg.phone}</p>
-
-          <p class="mt-3 text-gray-800 whitespace-pre-wrap">${msg.message}</p>
         `;
 
         container.appendChild(div);
@@ -109,6 +129,31 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Failed to load messages", err);
     }
   }
+
+  document.addEventListener("click", async (e) => {
+    if (e.target.classList.contains("delete-btn")) {
+
+      const id = e.target.dataset.id;
+
+      if (!confirm("Delete this message?")) return;
+
+      const { error } = await supabaseClient
+      .from('messages')
+      .update({ archived: true })
+      .eq('id', id);
+
+      if (error) {
+        console.error("Failed to delete message:", error);
+        return;
+      }
+
+      // remove from UI immediately
+      const messageEl = e.target.closest(".message");
+      if (messageEl) messageEl.remove();
+
+      updateStats();
+    }
+  });
 
   const inboxBtn = document.getElementById("inbox-btn");
   if (inboxBtn) {
